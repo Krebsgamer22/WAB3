@@ -11,13 +11,11 @@ model Athlete {
   id           Int             @id @default(autoincrement())
   firstName    String
   lastName     String
-  email        String
+  email        String    @unique
   birthdate    DateTime
   gender       Gender
   performances Performance[]
   proof        SwimmingProof?
-  
-  @@unique([email, birthdate])
 }
 
 model Performance {
