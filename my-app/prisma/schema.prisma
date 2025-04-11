@@ -1,0 +1,66 @@
+// Data source configuration
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Base athlete model
+model Athlete {
+  id           Int             @id @default(autoincrement())
+  firstName    String
+  lastName     String
+  email        String          @unique
+  birthdate    DateTime
+  gender       Gender
+  performances Performance[]
+  proofs       SwimmingProof[]
+}
+
+// Athletic performance records
+model Performance {
+  id          Int       @id @default(autoincrement())
+  athlete     Athlete   @relation(fields: [athleteId], references: [id])
+  athleteId   Int
+  discipline  String
+  value       Decimal
+  date        DateTime
+  medal       MedalType?
+  criteria    MedalCriteria? @relation(fields: [discipline], references: [discipline])
+}
+
+// Swimming proof documents
+model SwimmingProof {
+  id         Int       @id @default(autoincrement())
+  athlete    Athlete   @relation(fields: [athleteId], references: [id])
+  athleteId  Int
+  fileUrl    String
+  uploadDate DateTime  @default(now())
+}
+
+// Medal qualification standards
+model MedalCriteria {
+  discipline   String   @id
+  minAge       Int
+  maxAge       Int
+  bronzeValue  Decimal
+  silverValue  Decimal
+  goldValue    Decimal
+  performances Performance[]
+}
+
+// Enumerated types
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum MedalType {
+  BRONZE
+  SILVER
+  GOLD
+}
