@@ -27,6 +27,8 @@ model Performance {
   date        DateTime
   medal       MedalType?
   criteria    MedalCriteria @relation(fields: [discipline], references: [discipline])
+  
+  @@unique([athleteId, discipline, date], name: "athleteId_discipline_date")
 }
 
 model SwimmingProof {
