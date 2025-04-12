@@ -22,6 +22,8 @@ export default function AthleteForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [csvData, setCsvData] = useState<any[]>([]);
   const [duplicates, setDuplicates] = useState<string[]>([]);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const validateForm = () => {
     let valid = true;
@@ -111,12 +113,33 @@ export default function AthleteForm() {
         if (fileInputRef.current) fileInputRef.current.value = '';
       } else {
         if (!validateForm()) return;
+        
+        // Upload swimming proof first if exists
+        let fileUrl = '';
+        if (selectedFile) {
+          const formData = new FormData();
+          formData.append('file', selectedFile);
+          
+          const uploadResponse = await fetch('/api/upload-proof', {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (!uploadResponse.ok) throw new Error('File upload failed');
+          const { url } = await uploadResponse.json();
+          fileUrl = url;
+        }
+
+        // Submit athlete data with proof URL
         const response = await fetch('/api/athletes', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(formData),
+          body: JSON.stringify({
+            ...formData,
+            proofUrl: fileUrl
+          }),
         });
 
         if (!response.ok) throw new Error('Submission failed');

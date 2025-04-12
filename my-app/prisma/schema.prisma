@@ -36,7 +36,14 @@ model SwimmingProof {
   athlete    Athlete   @relation(fields: [athleteId], references: [id])
   athleteId  Int       @unique
   fileUrl    String
+  fileType   FileType 
   uploadDate DateTime  @default(now())
+}
+
+enum FileType {
+  PDF
+  JPEG
+  PNG
 }
 
 model MedalCriteria {
