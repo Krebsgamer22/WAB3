@@ -10,11 +10,17 @@ function errorResponse(message: string, status: number) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { firstName, lastName, email, birthdate, gender } = await request.json();
+    const data = await request.json();
+    const { firstName, lastName, email, birthdate } = data;
+    
+    // Validate required fields
+    if (!firstName || !lastName) {
+      return errorResponse('First name and last name are required', 400);
+    }
     
     // Check for existing email
-    const existingAthlete = await prisma.athlete.findUnique({
-      where: { email }
+    const existingAthlete = await prisma.athlete.findFirst({
+      where: { email: email || undefined }
     });
     
     if (existingAthlete) {
@@ -26,8 +32,7 @@ export async function POST(request: NextRequest) {
         firstName,
         lastName,
         email,
-        birthdate: new Date(birthdate),
-        gender 
+        birthdate: birthdate ? new Date(birthdate) : null
       }
     });
     
@@ -51,8 +56,11 @@ export async function PUT(request: NextRequest) {
     const { id, ...updateData } = await request.json();
     
     if (updateData.email) {
-      const existingAthlete = await prisma.athlete.findUnique({
-        where: { email: updateData.email }
+      const existingAthlete = await prisma.athlete.findFirst({
+        where: {
+          email: updateData.email,
+          NOT: { id }
+        }
       });
       
       if (existingAthlete && existingAthlete.id !== id) {
