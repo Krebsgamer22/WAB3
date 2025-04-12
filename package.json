@@ -6,9 +6,11 @@
     "cloudinary": "^2.6.0",
     "papaparse": "^5.5.2",
     "prisma": "^6.6.0",
-    "react-chartjs-2": "^5.3.0"
+    "react-chartjs-2": "^5.3.0",
+    "react-hot-toast": "^2.5.2"
   },
   "devDependencies": {
+    "@types/papaparse": "^5.3.15",
     "autoprefixer": "^10.4.21",
     "eslint-config-airbnb": "^19.0.4",
     "eslint-config-prettier": "^10.1.2",

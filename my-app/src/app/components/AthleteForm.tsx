@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import Papa from 'papaparse';
+import toast from 'react-hot-toast';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function AthleteForm() {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -17,6 +20,8 @@ export default function AthleteForm() {
     lastName: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [csvData, setCsvData] = useState<any[]>([]);
+  const [duplicates, setDuplicates] = useState<string[]>([]);
 
   const validateForm = () => {
     let valid = true;
@@ -39,25 +44,87 @@ export default function AthleteForm() {
     return valid;
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      complete: (results: Papa.ParseResult<unknown>) => {
+        if (results.errors.length) {
+          toast.error('Error parsing CSV file');
+          return;
+        }
+        setCsvData(results.data.slice(1)); // Skip header row
+      },
+      header: true,
+    });
+  };
+
+  const validateCSVRow = (row: any) => {
+    const errors = [];
+    
+    // Validate date format (TT.MM.JJJJ)
+    if (!/^\d{2}\.\d{2}\.\d{4}$/.test(row.birthdate)) {
+      errors.push('Invalid date format (use TT.MM.JJJJ)');
+    }
+
+    return errors.length ? errors.join(', ') : null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('/api/athletes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+      if (csvData.length > 0) {
+        // Check for duplicates
+        const uniqueCombos = new Set();
+        const duplicates: string[] = [];
+        
+        const validRows = csvData.filter((row) => {
+          const key = `${row.email}-${row.birthdate}`;
+          if (uniqueCombos.has(key)) {
+            duplicates.push(key);
+            return false;
+          }
+          uniqueCombos.add(key);
+          return !validateCSVRow(row);
+        });
 
-      if (!response.ok) throw new Error('Submission failed');
-      alert('Athlete added successfully!');
+        if (duplicates.length) {
+          toast.error(`Found ${duplicates.length} duplicate entries`);
+          setDuplicates(duplicates);
+          return;
+        }
+
+        const response = await fetch('/api/athletes/bulk', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(validRows),
+        });
+
+        if (!response.ok) throw new Error('Bulk upload failed');
+        toast.success(`Successfully added ${validRows.length} athletes`);
+        setCsvData([]);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      } else {
+        if (!validateForm()) return;
+        const response = await fetch('/api/athletes', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+
+        if (!response.ok) throw new Error('Submission failed');
+        toast.success('Athlete added successfully!');
+      }
     } catch (error) {
       console.error('Error:', error);
-      alert('Error submitting athlete');
+      toast.error(error instanceof Error ? error.message : 'Submission failed');
     } finally {
       setIsSubmitting(false);
     }
@@ -65,6 +132,21 @@ export default function AthleteForm() {
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-2xl space-y-6 bg-white p-8 rounded-2xl shadow-lg">
+      <div className="border-b border-gray-200 pb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-4">
+          Upload CSV File
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            accept=".csv"
+            className="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+          />
+        </label>
+        <p className="mt-2 text-sm text-gray-500">
+          CSV should contain columns: firstName, lastName, email, birthdate (TT.MM.JJJJ format)
+        </p>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
