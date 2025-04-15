@@ -16,7 +16,8 @@ interface CSVData {
 
 export async function POST(request: Request) {
   try {
-    const { athleteIds } = await request.json();
+    const { ids } = await request.json();
+    const athleteIds = Array.isArray(ids) ? ids : [ids];
     
     // Validate athletes exist
     const athletes = await prisma.athlete.findMany({
@@ -68,7 +69,7 @@ export async function POST(request: Request) {
     return new Response(csv, {
       headers: {
         'Content-Type': 'text/csv',
-        'Content-Disposition': 'attachment; filename=athlete-data.csv'
+        'Content-Disposition': `attachment; filename=${athleteIds.length > 1 ? 'bulk-export' : 'single-export'}-${Date.now()}.csv`
       }
     });
 

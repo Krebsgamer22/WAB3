@@ -2,15 +2,37 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
-type Athlete = {
-  id: string;
-  firstName: string;
-  lastName: string;
-  birthdate: string;
-  gender: string;
-};
+import type { Athlete } from '@prisma/client';
 
 const AthleteTable = () => {
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkLoading, setBulkLoading] = useState(false);
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkExport = async () => {
+    setBulkLoading(true);
+    try {
+      const response = await fetch('/api/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: selectedIds })
+      });
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bulk-export-${new Date().toISOString()}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } finally {
+      setBulkLoading(false);
+    }
+  };
   const [sortKey, setSortKey] = useState<'firstName' | 'lastName' | 'birthdate'>('firstName');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -47,6 +69,20 @@ const AthleteTable = () => {
     <div className="overflow-x-auto rounded-lg border">
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
+          <tr className="flex items-center justify-between p-4">
+            <div className="flex gap-4">
+              <button
+                className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:bg-blue-300 flex items-center gap-2"
+                onClick={handleBulkExport}
+                disabled={selectedIds.length === 0 || bulkLoading}
+              >
+                {bulkLoading && (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                )}
+                Export Selected ({selectedIds.length})
+              </button>
+            </div>
+          </tr>
           <tr>
             {['First Name', 'Last Name', 'Birthdate', 'Gender'].map((header) => (
               <th
