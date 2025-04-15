@@ -11,6 +11,7 @@ import {
   Legend,
 } from 'chart.js';
 import { useEffect, useRef } from 'react';
+import { Discipline } from '@prisma/client';
 
 ChartJS.register(
   CategoryScale,
@@ -38,10 +39,11 @@ interface Performance {
 
 interface PerformanceChartProps {
   performances: Performance[];
-  discipline: string;
+  discipline: Discipline;
+  className?: string;
 }
 
-export default function PerformanceChart({ performances, discipline }: PerformanceChartProps) {
+export default function PerformanceChart({ performances, discipline, className }: PerformanceChartProps) {
   const chartRef = useRef<ChartJS<'line'>>(null);
 
   useEffect(() => {
@@ -79,7 +81,7 @@ export default function PerformanceChart({ performances, discipline }: Performan
   };
 
   return (
-    <div className="h-96 w-full p-4 bg-white rounded-lg shadow-md">
+    <div className={`h-96 w-full p-4 bg-white rounded-lg shadow-md ${className}`}>
       <Line ref={chartRef} data={chartData} options={options} />
     </div>
   );

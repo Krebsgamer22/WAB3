@@ -1,17 +1,28 @@
 import { notFound } from 'next/navigation';
 import prisma from '@/lib/prisma';
-import { Decimal } from '@prisma/client/runtime/library';
+import { Prisma, Discipline } from '@prisma/client';
 import PerformanceChart from '@/app/components/PerformanceChart';
 
-interface Performance {
-  id: number;
-  discipline: string;
-  value: Decimal;
-  date: Date;
-  medal: 'GOLD' | 'SILVER' | 'BRONZE' | null;
+function calculateAge(birthdate: Date): number {
+  const today = new Date();
+  const birthDate = new Date(birthdate);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
 }
 
-const formatDecimal = (value: Decimal) => value.toNumber().toFixed(2);
+type Performance = Prisma.PerformanceGetPayload<{
+  include: { criteria: true };
+}>;
+
+type MedalCriteria = Prisma.MedalCriteriaGetPayload<{
+  select: { discipline: true; minAge: true; maxAge: true };
+}>;
+
+const formatDecimal = (value: Prisma.Decimal) => value.toNumber().toFixed(2);
 
 interface AthleteWithRelations {
   id: number;
@@ -26,28 +37,44 @@ interface AthleteWithRelations {
 }
 
 export default async function AthletePage({ params }: { params: { id: string } }) {
-  const athlete = await prisma.athlete.findUnique({
-    where: { id: parseInt(params.id) },
-    include: {
-      performances: {
-        orderBy: { date: 'desc' }
-      },
-      proof: true
-    }
-  });
+  const [athlete, medalCriteria] = await Promise.all([
+    prisma.athlete.findUnique({
+      where: { id: parseInt(params.id) },
+      include: {
+        performances: {
+          orderBy: { date: 'desc' },
+          include: { criteria: true }
+        },
+        proof: true
+      }
+    }),
+    prisma.medalCriteria.findMany()
+  ]);
 
   if (!athlete) notFound();
 
+  const age = calculateAge(athlete.birthdate);
+  const allowedDisciplines = new Set(
+    medalCriteria.filter(c => age >= c.minAge && age <= c.maxAge)
+      .map(c => c.discipline)
+  );
+
   const athleteWithRelations = athlete as unknown as AthleteWithRelations;
-  const latestByDiscipline = (discipline: string) => 
+  const latestByDiscipline = (discipline: Discipline) => 
     athleteWithRelations.performances.find((p: Performance) => p.discipline === discipline);
 
   const performanceSections = [
-    { title: 'Ausdauer', key: 'endurance' },
-    { title: 'Kraft', key: 'strength' },
-    { title: 'Schnelligkeit', key: 'speed' },
-    { title: 'Koordination', key: 'coordination' }
-  ];
+    { title: 'Ausdauer', key: Discipline.AUSDAUER },
+    { title: 'Kraft', key: Discipline.KRAFT },
+    { title: 'Schnelligkeit', key: Discipline.SCHNELLIGKEIT },
+    { title: 'Koordination', key: Discipline.TECHNIK }
+  ].filter(section => allowedDisciplines.has(section.key));
+
+  // Add age warnings for existing performances outside criteria
+  const ageWarnings = medalCriteria.filter(criteria => 
+    athlete.performances.some(p => p.discipline === criteria.discipline) &&
+    (age < criteria.minAge || age > criteria.maxAge)
+  );
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -55,7 +82,7 @@ export default async function AthletePage({ params }: { params: { id: string } }
         <div>
           <h1 className="text-3xl font-bold">{athlete.firstName} {athlete.lastName}</h1>
           <div className="mt-2 text-gray-600">
-            {Math.floor((new Date().getTime() - new Date(athlete.birthdate).getTime()) / 3.15576e+10)} Jahre | {athlete.gender}
+            {age} Jahre | {athlete.gender}
           </div>
         </div>
         <span className={`px-4 py-2 rounded-full ${
@@ -101,11 +128,28 @@ export default async function AthletePage({ params }: { params: { id: string } }
         })}
       </div>
 
-      <PerformanceChart 
-        performances={athlete.performances} 
-        discipline="endurance" 
+      <PerformanceChart
+        performances={athlete.performances.map(p => ({
+          ...p,
+          value: p.value.toNumber(),
+          date: p.date.toISOString()
+        }))}
+        discipline={Discipline.AUSDAUER}
         className="mb-8"
       />
+
+      {ageWarnings.length > 0 && (
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-8">
+          <h3 className="font-bold mb-2">Alterswarnungen:</h3>
+          <ul className="list-disc pl-5">
+            {ageWarnings.map(warning => (
+              <li key={warning.discipline}>
+                {warning.discipline}: Nur für {warning.minAge}-{warning.maxAge} Jahre
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="mb-8">
         <h2 className="text-2xl font-bold mb-4">Historische Ergebnisse</h2>
