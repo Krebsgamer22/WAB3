@@ -1,13 +1,14 @@
 import { notFound } from 'next/navigation';
 import prisma from '@/lib/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
+import PerformanceChart from '@/app/components/PerformanceChart';
 
 interface Performance {
   id: number;
   discipline: string;
   value: Decimal;
   date: Date;
-  medal?: 'GOLD' | 'SILVER' | 'BRONZE';
+  medal: 'GOLD' | 'SILVER' | 'BRONZE' | null;
 }
 
 const formatDecimal = (value: Decimal) => value.toNumber().toFixed(2);
@@ -99,6 +100,12 @@ export default async function AthletePage({ params }: { params: { id: string } }
           );
         })}
       </div>
+
+      <PerformanceChart 
+        performances={athlete.performances} 
+        discipline="endurance" 
+        className="mb-8"
+      />
 
       <div className="mb-8">
         <h2 className="text-2xl font-bold mb-4">Historische Ergebnisse</h2>
