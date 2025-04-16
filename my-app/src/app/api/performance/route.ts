@@ -1,6 +1,17 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { PrismaClient, Discipline } from '@prisma/client'
+import { Prisma, PrismaClient, Discipline } from '@prisma/client'
 import Papa from 'papaparse'
+
+// Medal calculation logic
+function calculateMedal(score: number): string {
+  if (score > 100 || score < 0) {
+    throw new Error('Invalid score - must be between 0-100')
+  }
+  if (score >= 90) return 'Gold'
+  if (score >= 75) return 'Silver'
+  if (score >= 60) return 'Bronze'
+  throw new Error('Score below minimum threshold of 60')
+}
 
 const prisma = new PrismaClient()
 
@@ -69,7 +80,7 @@ export async function POST(request: NextRequest) {
       validRows.push({
         athleteId: athlete.id,
         discipline: row.discipline,
-        value: parseFloat(row.value),
+      value: parseFloat(row.value.replace(',', '.').trim()),
         date: new Date(row.date),
         force
       })
@@ -99,8 +110,8 @@ export async function POST(request: NextRequest) {
               date: row.date
             },
             update: row.force ? {
-              value: row.value
-            } : undefined
+              value: new Prisma.Decimal(row.value)
+            } as any : undefined // Type assertion for Prisma update payload
           })
         } catch (error) {
           return { error }
@@ -120,7 +131,7 @@ export async function POST(request: NextRequest) {
       } else if ('error' in result) {
         errorReport.push({
           ...csvRows[i],
-          error: result.error.message
+          error: result.error instanceof Error ? result.error.message : 'Database operation failed'
         })
       } else {
         createdPerformances.push(result)
@@ -133,11 +144,28 @@ export async function POST(request: NextRequest) {
       data: errorReport
     })
 
+    // Calculate medals for valid performances
+    const performancesWithMedals = createdPerformances.map(perf => {
+      try {
+        return {
+          ...perf,
+          value: perf.value.toNumber(),
+          medal: calculateMedal(perf.value.toNumber())
+        }
+      } catch (error) {
+        return {
+          ...perf,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        }
+      }
+    })
+
     return NextResponse.json({
       successCount: createdPerformances.length,
       errorCount: errorReport.length,
-      errorReport: errorCsv
-    }, { status: 201 })
+      errorReport: errorCsv,
+      performances: performancesWithMedals
+    }, { status: 200 })
 
   } catch (error) {
     console.error('Performance creation error:', error)
