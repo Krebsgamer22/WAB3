@@ -74,3 +74,13 @@ enum Discipline {
   SCHNELLIGKEIT
   TECHNIK
 }
+
+model Rule {
+  id             Int         @id @default(autoincrement())
+  effectiveYear  Int         @unique
+  description    String
+  discipline     Discipline
+  criteria       Json
+  
+  @@index([effectiveYear, discipline])
+}
