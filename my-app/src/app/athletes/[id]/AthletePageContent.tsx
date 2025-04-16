@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Prisma, Discipline, MedalType } from '@prisma/client';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import CertificateTemplate from '@/app/components/CertificateTemplate';
+import Link from 'next/link';
 import PerformanceChart from '@/app/components/PerformanceChart';
 
 const formatDecimal = (value: Prisma.Decimal) => value.toNumber().toFixed(2);
@@ -186,6 +187,17 @@ export default function AthletePageContent({
             {athlete.proof ? 'Nachweis vorhanden' : 'Nachweis fehlt'}
           </span>
         </div>
+      </div>
+
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold mb-4">Swimming Proof Template</h2>
+        <Link
+          href="/swimming-proof-templates/official-template.pdf"
+          download
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors inline-block"
+        >
+          Download Official Template
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
