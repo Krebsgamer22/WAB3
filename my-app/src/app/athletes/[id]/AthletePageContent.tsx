@@ -1,5 +1,6 @@
 "use client";
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Prisma, Discipline, MedalType } from '@prisma/client';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import CertificateTemplate from '@/app/components/CertificateTemplate';
@@ -76,13 +77,18 @@ export default function AthletePageContent({
   latestByDiscipline,
   formatDecimal
 }: AthletePageContentProps) {
-  const [loading, setLoading] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [rulesUrl, setRulesUrl] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
+  const { data: athleteData, isLoading } = useQuery({
+    queryKey: ['athlete', athlete.id],
+    queryFn: () => fetch(`/api/athletes?id=${athlete.id}`).then(res => res.json()),
+    staleTime: 300000 // 5 minutes cache
+  });
   const age = calculateAge(athlete.birthdate);
 
   const handleRulesUpdate = async () => {
-    setLoading(true);
+    const [isUpdating, setIsUpdating] = useState(false);
     try {
       // Security validation
       if (!rulesUrl.startsWith('https://')) {
@@ -114,7 +120,7 @@ export default function AthletePageContent({
       console.error('Update failed:', error);
       alert('Aktualisierung fehlgeschlagen');
     } finally {
-      setLoading(false);
+      setIsUpdating(false);
     }
   };
 
@@ -139,8 +145,8 @@ export default function AthletePageContent({
             Regelungen aktualisieren
           </button>
           <button 
-            onClick={async () => {
-              setLoading(true);
+              onClick={async () => {
+              setIsExporting(true);
               try {
                 const response = await fetch(`/api/export?id=${athlete.id}`);
                 const blob = await response.blob();
@@ -151,14 +157,12 @@ export default function AthletePageContent({
                 a.click();
               } catch (error) {
                 console.error('Export failed:', error);
-              } finally {
-                setLoading(false);
               }
             }}
             className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:bg-blue-300 flex items-center gap-2"
-            disabled={loading}
+            disabled={isLoading}
           >
-            {loading && (
+            {isExporting && (
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
             )}
             Export CSV

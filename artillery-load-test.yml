@@ -1,0 +1,17 @@
+config:
+  target: "http://localhost:3000"
+  phases:
+    - duration: 60
+      arrivalRate: 10
+scenarios:
+  - flow:
+      - get:
+          url: "/api/athletes"
+      - get:
+          url: "/api/athletes/1"
+      - post:
+          url: "/api/athletes"
+          json:
+            firstName: "Test"
+            lastName: "User"
+            email: "test{{ $timestamp }}@example.com"

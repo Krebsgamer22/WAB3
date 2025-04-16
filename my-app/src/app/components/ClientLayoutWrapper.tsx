@@ -1,6 +1,9 @@
 'use client';
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import YearSelector from './YearSelector';
+
+const queryClient = new QueryClient();
 
 export default function ClientLayoutWrapper({ children }: { children: React.ReactNode }) {
   return (
@@ -9,7 +12,9 @@ export default function ClientLayoutWrapper({ children }: { children: React.Reac
         <h1 className="text-xl font-bold text-gray-800">Athlete Performance Tracker</h1>
         <YearSelector />
       </header>
-      {children}
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
     </>
   );
 }

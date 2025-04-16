@@ -57,7 +57,11 @@ export async function GET(request: NextRequest) {
     const athletes = await prisma.athlete.findMany({
       where
     });
-    return NextResponse.json(athletes);
+    return NextResponse.json(athletes, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=300'
+      }
+    });
   } catch (error) {
     return errorResponse('Failed to fetch athletes', 500);
   }
