@@ -74,8 +74,46 @@ export default function AthletePageContent({
   formatDecimal
 }: AthletePageContentProps) {
   const [loading, setLoading] = useState(false);
+  const [showDialog, setShowDialog] = useState(false);
+  const [rulesUrl, setRulesUrl] = useState('');
   const age = calculateAge(athlete.birthdate);
 
+  const handleRulesUpdate = async () => {
+    setLoading(true);
+    try {
+      // Security validation
+      if (!rulesUrl.startsWith('https://')) {
+        alert('Nur HTTPS-URLs sind erlaubt');
+        return;
+      }
+
+      const allowedDomains = process.env.ALLOWED_DOMAINS?.split(',') || [];
+      const urlObj = new URL(rulesUrl);
+      
+      if (!allowedDomains.includes(urlObj.hostname)) {
+        alert('Ungültige Domain');
+        return;
+      }
+
+      const response = await fetch('/api/rules', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: rulesUrl }),
+      });
+
+      if (!response.ok) throw new Error('Fehler beim Aktualisieren');
+      
+      alert('Regelungen erfolgreich aktualisiert');
+      setShowDialog(false);
+    } catch (error) {
+      console.error('Update failed:', error);
+      alert('Aktualisierung fehlgeschlagen');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -87,6 +125,16 @@ export default function AthletePageContent({
           </div>
         </div>
         <div className="flex items-center gap-4">
+          <button
+            className={`px-4 py-2 rounded-md ${
+              (new Date().getMonth() === 0 && new Date().getDate() <= 28) 
+                ? 'bg-red-500 hover:bg-red-600' 
+                : 'bg-gray-500 hover:bg-gray-600'
+            } text-white`}
+            onClick={() => setShowDialog(true)}
+          >
+            Regelungen aktualisieren
+          </button>
           <button 
             onClick={async () => {
               setLoading(true);
@@ -212,6 +260,35 @@ export default function AthletePageContent({
       >
         Neue Leistung erfassen
       </a>
+
+      {showDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full">
+            <h2 className="text-xl font-bold mb-4">Regelungen aktualisieren</h2>
+            <input
+              type="text"
+              value={rulesUrl}
+              onChange={(e) => setRulesUrl(e.target.value)}
+              placeholder="Regelungen URL eingeben"
+              className="w-full p-2 border rounded mb-4"
+            />
+            <div className="flex justify-end gap-4">
+              <button
+                onClick={() => setShowDialog(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={handleRulesUpdate}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Bestätigen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
