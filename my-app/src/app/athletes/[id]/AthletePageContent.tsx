@@ -1,6 +1,8 @@
 "use client";
 import { useState } from 'react';
 import { Prisma, Discipline, MedalType } from '@prisma/client';
+import { PDFDownloadLink } from '@react-pdf/renderer';
+import CertificateTemplate from '@/app/components/CertificateTemplate';
 import PerformanceChart from '@/app/components/PerformanceChart';
 
 const formatDecimal = (value: Prisma.Decimal) => value.toNumber().toFixed(2);
@@ -160,6 +162,22 @@ export default function AthletePageContent({
             )}
             Export CSV
           </button>
+          <PDFDownloadLink
+            document={<CertificateTemplate athlete={athlete} />}
+            fileName={`certificate-${athlete.lastName}.pdf`}
+          >
+            {({ loading }: { loading: boolean }) => (
+              <button
+                className="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 disabled:bg-green-300 flex items-center gap-2"
+                disabled={loading}
+              >
+                {loading && (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                )}
+                Download Certificate
+              </button>
+            )}
+          </PDFDownloadLink>
           <span className={`px-4 py-2 rounded-full ${
             athlete.proof 
               ? 'bg-green-100 text-green-800' 
