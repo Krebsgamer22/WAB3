@@ -35,11 +35,18 @@ const AthleteTable = () => {
   };
   const [sortKey, setSortKey] = useState<'firstName' | 'lastName' | 'birthdate'>('firstName');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [selectedYear] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const storedYear = localStorage.getItem('selectedYear');
+      return storedYear ? parseInt(storedYear) : new Date().getFullYear();
+    }
+    return new Date().getFullYear();
+  });
 
   const { data: athletes = [], isLoading } = useQuery<Athlete[]>({
-    queryKey: ['athletes', sortKey, sortDirection],
+    queryKey: ['athletes', sortKey, sortDirection, selectedYear],
     queryFn: async () => {
-      const res = await fetch(`/api/athletes?sortBy=${sortKey}&order=${sortDirection}`);
+      const res = await fetch(`/api/athletes?sortBy=${sortKey}&order=${sortDirection}&year=${selectedYear}`);
       return res.json();
     }
   });

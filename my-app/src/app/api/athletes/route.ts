@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
         firstName,
         lastName,
         email,
-        birthdate: birthdate ? new Date(birthdate) : null
+        ...(birthdate && { birthdate: new Date(birthdate) })
       }
     });
     
@@ -42,9 +42,21 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const athletes = await prisma.athlete.findMany();
+    const { searchParams } = new URL(request.url);
+    const year = searchParams.get('year');
+    
+    const where = year ? {
+      birthdate: {
+        gte: new Date(parseInt(year), 0, 1), // Start of year
+        lt: new Date(parseInt(year) + 1, 0, 1) // Start of next year
+      }
+    } : {};
+
+    const athletes = await prisma.athlete.findMany({
+      where
+    });
     return NextResponse.json(athletes);
   } catch (error) {
     return errorResponse('Failed to fetch athletes', 500);
