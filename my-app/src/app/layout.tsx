@@ -33,7 +33,7 @@ export default function RootLayout({
         <header className="sticky top-0 z-50 bg-white shadow-sm">
           <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-16 items-center">
-              <h1 className="text-2xl font-bold text-blue-600">
+              <h1 className="text-2xl font-bold text-primary">
                 Athlete Management
               </h1>
               <Navbar />
