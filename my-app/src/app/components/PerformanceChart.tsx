@@ -11,7 +11,8 @@ import {
   Legend,
 } from 'chart.js';
 import { useEffect, useRef } from 'react';
-import { Discipline } from '@prisma/client';
+
+type Discipline = 'SWIMMING' | 'RUNNING' | 'CYCLING';
 
 ChartJS.register(
   CategoryScale,

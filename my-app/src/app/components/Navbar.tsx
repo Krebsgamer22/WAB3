@@ -18,6 +18,24 @@ export default function Navbar() {
       >
         Competition Rules
       </Link>
+      <Link
+        href="/performance"
+        className="text-gray-600 hover:text-blue-600 transition-colors"
+      >
+        Performance Stats
+      </Link>
+      <Link
+        href="/certificates"
+        className="text-gray-600 hover:text-blue-600 transition-colors"
+      >
+        Certificates
+      </Link>
+      <Link
+        href="/settings"
+        className="text-gray-600 hover:text-blue-600 transition-colors"
+      >
+        Settings
+      </Link>
     </div>
   );
 }
