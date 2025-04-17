@@ -48,7 +48,8 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { id } = await request.json()
+    const pathSegments = request.nextUrl.pathname.split('/')
+    const id = pathSegments[pathSegments.length - 1]
     if (!id || isNaN(parseInt(id))) {
       return NextResponse.json(
         { error: "Missing or invalid athlete ID" },
@@ -57,6 +58,10 @@ export async function PUT(request: NextRequest) {
     }
     
     const updateData = await request.json()
+    
+    // Prevent updating protected fields
+    delete updateData.id
+    delete updateData.email
     
     const updatedAthlete = await prisma.athlete.update({
       where: { id: parseInt(id) },
@@ -79,7 +84,9 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { id } = await request.json()
+    const pathSegments = request.nextUrl.pathname.split('/')
+    const id = pathSegments[pathSegments.length - 1]
+    
     if (!id || isNaN(parseInt(id))) {
       return NextResponse.json(
         { error: "Missing or invalid athlete ID" },
@@ -87,28 +94,30 @@ export async function DELETE(request: NextRequest) {
       )
     }
     
-    // Verify athlete exists first
-    const existingAthlete = await prisma.athlete.findUnique({
-      where: { id }
-    });
-    if (!existingAthlete) {
-      return NextResponse.json(
-        { error: "Athlete not found" },
-        { status: 404 }
-      );
-    }
+    // Check for existing performances
+    const performances = await prisma.performance.findMany({
+      where: { athleteId: parseInt(id) }
+    })
     
+    if (performances.length > 0) {
+      return NextResponse.json(
+        { error: "Cannot delete athlete with existing performances" },
+        { status: 409 }
+      )
+    }
+
+    // Delete athlete
     await prisma.athlete.delete({
-      where: { id }
+      where: { id: parseInt(id) }
     })
     
     return new Response(null, { status: 204 })
     
   } catch (error) {
     console.error('Delete athlete error:', error)
-    return NextResponse.json(
-      { error: "Failed to delete athlete - invalid ID or athlete not found" },
-      { status: 400 }
+      return NextResponse.json(
+        { error: "Athlete not found" },
+        { status: 404 }
     )
   }
 }
