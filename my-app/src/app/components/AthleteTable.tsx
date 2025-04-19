@@ -82,7 +82,7 @@ const AthleteTable = ({ athletes }: AthleteTableProps) => {
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            <td colSpan={4} className="p-4 bg-gray-50">
+            <td colSpan={5} className="p-4 bg-gray-50">
               <div className="flex gap-4">
                 <button
                   className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:bg-blue-300 flex items-center gap-2"
@@ -98,6 +98,19 @@ const AthleteTable = ({ athletes }: AthleteTableProps) => {
             </td>
           </tr>
           <tr>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <input
+                type="checkbox"
+                checked={selectedIds.length === filteredAthletes.length && filteredAthletes.length > 0}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setSelectedIds(filteredAthletes.map(a => a.id.toString()));
+                  } else {
+                    setSelectedIds([]);
+                  }
+                }}
+              />
+            </th>
             {['First Name', 'Last Name', 'Birthdate', 'Gender'].map((header) => (
               <th
                 key={header}
@@ -121,6 +134,14 @@ const AthleteTable = ({ athletes }: AthleteTableProps) => {
         <tbody className="bg-white divide-y divide-gray-200">
           {sortedAthletes.map((athlete) => (
             <tr key={athlete.id}>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(athlete.id.toString())}
+                  onChange={() => toggleSelection(athlete.id.toString())}
+                  className="h-4 w-4"
+                />
+              </td>
               <td className="px-6 py-4 whitespace-nowrap">{athlete.firstName}</td>
               <td className="px-6 py-4 whitespace-nowrap">{athlete.lastName}</td>
               <td className="px-6 py-4 whitespace-nowrap">

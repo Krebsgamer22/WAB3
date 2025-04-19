@@ -1,70 +1,47 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import prisma from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
   try {
-    const data = await request.json();
+    const { ids } = await request.json();
     
-    // Validate date format (TT.MM.JJJJ with actual date validation)
-    // Validate required fields first
-    if (!data.date || !data.athletes?.length) {
+    if (!ids?.length) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "No athlete IDs provided" },
         { status: 400 }
       )
     }
 
-    // Validate date format
-    const dateRegex = /^\d{2}\.\d{2}\.\d{4}$/;
-    if (!dateRegex.test(data.date)) {
-      return NextResponse.json(
-        { error: "Invalid date format - use TT.MM.JJJJ" },
-        { status: 400 }
-      )
-    }
-    
-    const [day, month, year] = data.date.split('.');
-    const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-    const dateObj = new Date(isoDate);
-    
-    if (isNaN(dateObj.getTime())) {
-      return NextResponse.json(
-        { error: "Invalid date format" },
-        { status: 400 }
-      );
-    }
+    const athletes = await prisma.athlete.findMany({
+      where: { id: { in: ids.map((id: string) => parseInt(id)) } },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        birthdate: true,
+        gender: true
+      }
+    });
 
-    // Check for duplicate emails
-interface AthleteData {
-  email: string
-}
+    // Create CSV content
+    const csvHeader = 'ID,First Name,Last Name,Email,Birthdate,Gender\n';
+    const csvRows = athletes.map((athlete) => 
+      `${athlete.id},${athlete.firstName},${athlete.lastName},${athlete.email},"${new Date(athlete.birthdate).toLocaleDateString()}",${athlete.gender}`
+    ).join('\n');
 
-    // Validate unique emails
-    const emailCounts = new Map<string,number>();
-    for (const athlete of data.athletes) {
-      const count = emailCounts.get(athlete.email) || 0;
-      emailCounts.set(athlete.email, count + 1);
-    }
-    
-    const duplicates = Array.from(emailCounts.entries())
-      .filter(([_, count]) => count > 1)
-      .map(([email]) => email);
+    const csv = csvHeader + csvRows;
 
-    if (duplicates.length > 0) {
-      return NextResponse.json(
-        { error: `Duplicate emails found - must use unique emails: ${duplicates.join(', ')}` },
-        { status: 400 }
-      );
-    }
-
-    // If all validations pass
-    return NextResponse.json(
-      { message: "Export data validated successfully" },
-      { status: 200 }
-    );
+    return new Response(csv, {
+      headers: {
+        'Content-Type': 'text/csv',
+        'Content-Disposition': `attachment; filename=athletes-export-${Date.now()}.csv`
+      }
+    });
 
   } catch (error) {
     return NextResponse.json(
-      { error: "Invalid request format - must include valid date and athlete data with unique emails" },
+      { error: "Failed to generate export" },
       { status: 400 }
     );
   }
