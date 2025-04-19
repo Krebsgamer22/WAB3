@@ -1,3 +1,4 @@
-name,country,event
-John Doe,USA,100m Sprint
-Jane Smith,CAN,Long Jump
+firstName,lastName,birthdate,gender,email
+Michael,Phelps,1985-06-30,MALE,michael.phelps@example.com
+Simone,Biles,1997-03-14,FEMALE,simone.biles@example.com
+Caeleb,Dressel,1996-08-16,MALE,caeleb.dressel@example.com

@@ -1,0 +1,8 @@
+firstName,lastName,birthdate,gender,email
+John,Doe,1990-05-15,MALE,john.doe@example.com
+Jane,Smith,1995-11-22,FEMALE,jane.smith@example.com
+Alex,Johnson,2000-03-08,OTHER,alex.j@example.com
+
+# Alternate header formats also accepted:
+# firstname,lastname,dob,sex,email
+# FirstName,LastName,Date of Birth,Gender,Email

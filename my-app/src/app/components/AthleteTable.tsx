@@ -1,6 +1,6 @@
 "use client";
 import { useQuery } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 import type { Athlete } from '@prisma/client';
 
@@ -9,6 +9,8 @@ interface AthleteTableProps {
 }
 
 const AthleteTable = ({ athletes }: AthleteTableProps) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadStatus, setUploadStatus] = useState<{ type: 'success'|'error', message: string }|null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkLoading, setBulkLoading] = useState(false);
 
@@ -16,6 +18,53 @@ const AthleteTable = ({ athletes }: AthleteTableProps) => {
     setSelectedIds(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
+  };
+
+  const handleCSVUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const csvData = e.target?.result;
+          const response = await fetch('/api/athletes', {
+            method: 'POST',
+            body: csvData,
+            headers: {
+              'Content-Type': 'text/csv'
+            }
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'CSV upload failed');
+          }
+
+          setUploadStatus({ type: 'success', message: 'Athletes imported successfully!' });
+          setTimeout(() => setUploadStatus(null), 3000);
+          window.location.reload();
+        } catch (error) {
+          setUploadStatus({
+            type: 'error',
+            message: error instanceof Error ? error.message : 'Failed to import CSV'
+          });
+          setTimeout(() => setUploadStatus(null), 5000);
+        } finally {
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+        }
+      };
+      reader.readAsText(file);
+    } catch (error) {
+      setUploadStatus({
+        type: 'error', 
+        message: 'Failed to read CSV file'
+      });
+      setTimeout(() => setUploadStatus(null), 5000);
+    }
   };
 
   const handleBulkExport = async () => {
@@ -79,11 +128,34 @@ const AthleteTable = ({ athletes }: AthleteTableProps) => {
 
   return (
     <div className="overflow-x-auto rounded-lg border">
+      {uploadStatus && (
+        <div className={`mb-4 p-3 rounded-md ${
+          uploadStatus.type === 'success' 
+            ? 'bg-green-100 text-green-700' 
+            : 'bg-red-100 text-red-700'
+        }`}>
+          {uploadStatus.message}
+        </div>
+      )}
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
             <td colSpan={5} className="p-4 bg-gray-50">
               <div className="flex gap-4">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept=".csv"
+                  onChange={handleCSVUpload}
+                  className="hidden"
+                  id="csvUpload"
+                />
+                <label
+                  htmlFor="csvUpload"
+                  className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md cursor-pointer"
+                >
+                  Import CSV
+                </label>
                 <button
                   className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 disabled:bg-blue-300 flex items-center gap-2"
                   onClick={handleBulkExport}

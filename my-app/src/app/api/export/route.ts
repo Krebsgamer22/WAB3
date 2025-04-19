@@ -15,19 +15,18 @@ export async function POST(request: NextRequest) {
     const athletes = await prisma.athlete.findMany({
       where: { id: { in: ids.map((id: string) => parseInt(id)) } },
       select: {
-        id: true,
         firstName: true,
         lastName: true,
-        email: true,
         birthdate: true,
-        gender: true
+        gender: true,
+        email: true
       }
     });
 
-    // Create CSV content
-    const csvHeader = 'ID,First Name,Last Name,Email,Birthdate,Gender\n';
+    // Create CSV content matching import format
+    const csvHeader = 'firstName,lastName,birthdate,gender,email\n';
     const csvRows = athletes.map((athlete) => 
-      `${athlete.id},${athlete.firstName},${athlete.lastName},${athlete.email},"${new Date(athlete.birthdate).toLocaleDateString()}",${athlete.gender}`
+      `${athlete.firstName},${athlete.lastName},${new Date(athlete.birthdate).toISOString().split('T')[0]},${athlete.gender},${athlete.email}`
     ).join('\n');
 
     const csv = csvHeader + csvRows;
