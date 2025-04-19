@@ -3,7 +3,7 @@
 import { 
   Document as PdfDocument,
   Page as PdfPage,
-  Text as PdfText,
+  Text as PdfText,  // Ensure PascalCase alias
   View as PdfView,
   StyleSheet 
 } from '@react-pdf/renderer';
