@@ -1,6 +1,7 @@
 "use client";
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { Prisma, Discipline, MedalType } from '@prisma/client';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import CertificateTemplate from '@/app/components/CertificateTemplate';
@@ -17,6 +18,8 @@ interface AthletePageContentProps {
     lastName: string;
     birthdate: Date;
     gender: string;
+    discipline: string;
+    email: string;
     performances: Array<{
       id: number;
       value: Prisma.Decimal;
@@ -87,12 +90,14 @@ export default function AthletePageContent({
   });
   const age = calculateAge(athlete.birthdate);
 
+  const [isUpdating, setIsUpdating] = useState(false);
+  
   const handleRulesUpdate = async () => {
-    const [isUpdating, setIsUpdating] = useState(false);
+    setIsUpdating(true);
     try {
       // Security validation
       if (!rulesUrl.startsWith('https://')) {
-        alert('Nur HTTPS-URLs sind erlaubt');
+        toast.error('Nur HTTPS-URLs sind erlaubt');
         return;
       }
 
@@ -100,7 +105,7 @@ export default function AthletePageContent({
       const urlObj = new URL(rulesUrl);
       
       if (!allowedDomains.includes(urlObj.hostname)) {
-        alert('Ungültige Domain');
+        toast.error('Ungültige Domain');
         return;
       }
 
@@ -112,13 +117,17 @@ export default function AthletePageContent({
         body: JSON.stringify({ url: rulesUrl }),
       });
 
-      if (!response.ok) throw new Error('Fehler beim Aktualisieren');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Fehler beim Aktualisieren');
+      }
       
-      alert('Regelungen erfolgreich aktualisiert');
+      toast.success('Regelungen erfolgreich aktualisiert');
       setShowDialog(false);
+      setRulesUrl('');
     } catch (error) {
-      console.error('Update failed:', error);
-      alert('Aktualisierung fehlgeschlagen');
+      console.error('Rules update failed:', error);
+      toast.error(error instanceof Error ? error.message : 'Aktualisierung fehlgeschlagen');
     } finally {
       setIsUpdating(false);
     }

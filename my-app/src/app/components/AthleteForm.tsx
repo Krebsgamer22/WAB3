@@ -142,12 +142,29 @@ export default function AthleteForm() {
           }),
         });
 
-        if (!response.ok) throw new Error('Submission failed');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Submission failed');
+        }
         toast.success('Athlete added successfully!');
+        setFormData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          birthdate: ''
+        });
+        setSelectedFile(null);
+        setPreviewUrl(null);
       }
     } catch (error) {
-      console.error('Error:', error);
-      toast.error(error instanceof Error ? error.message : 'Submission failed');
+      console.error('Submission error:', error);
+      setErrors({ email: '', firstName: '', lastName: '' });
+      
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error('Submission failed due to an unexpected error');
+      }
     } finally {
       setIsSubmitting(false);
     }
