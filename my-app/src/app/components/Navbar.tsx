@@ -25,12 +25,6 @@ export default function Navbar() {
         Performance Stats
       </Link>
       <Link
-        href="/certificates"
-        className="text-secondary hover:text-primary transition-colors"
-      >
-        Certificates
-      </Link>
-      <Link
         href="/settings"
         className="text-secondary hover:text-primary transition-colors"
       >

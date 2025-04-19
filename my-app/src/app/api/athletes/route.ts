@@ -140,7 +140,11 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  const athletes = await prisma.athlete.findMany()
+  const athletes = await prisma.athlete.findMany({
+    include: {
+      proof: true
+    }
+  })
   return NextResponse.json(athletes)
 }
 
