@@ -14,6 +14,7 @@ interface AthleteTableProps {
 
 const AthleteTable = ({ athletes }: AthleteTableProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const certificateInputRef = useRef<HTMLInputElement>(null);
   const [uploadStatus, setUploadStatus] = useState<{ type: 'success'|'error', message: string }|null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkLoading, setBulkLoading] = useState(false);
@@ -68,6 +69,54 @@ const AthleteTable = ({ athletes }: AthleteTableProps) => {
         message: 'Failed to read CSV file'
       });
       setTimeout(() => setUploadStatus(null), 5000);
+    }
+  };
+
+  const handleCertificateUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+    if (!validTypes.includes(file.type)) {
+      setUploadStatus({
+        type: 'error',
+        message: 'Invalid file type. Please upload PDF, JPEG, or PNG files.'
+      });
+      setTimeout(() => setUploadStatus(null), 5000);
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('/api/upload-proof', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Certificate upload failed');
+      }
+
+      setUploadStatus({
+        type: 'success', 
+        message: 'Certificate uploaded successfully!'
+      });
+      setTimeout(() => setUploadStatus(null), 3000);
+      window.location.reload();
+    } catch (error) {
+      setUploadStatus({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Failed to upload certificate'
+      });
+      setTimeout(() => setUploadStatus(null), 5000);
+    } finally {
+      if (certificateInputRef.current) {
+        certificateInputRef.current.value = '';
+      }
     }
   };
 
@@ -146,14 +195,22 @@ const { data: filteredAthletes = [], isLoading } = useQuery<AthleteWithProof[]>(
           <tr>
             <td colSpan={5} className="p-4 bg-gray-50">
               <div className="flex gap-4">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  accept=".csv"
-                  onChange={handleCSVUpload}
-                  className="hidden"
-                  id="csvUpload"
-                />
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept=".csv"
+                    onChange={handleCSVUpload}
+                    className="hidden"
+                    id="csvUpload"
+                  />
+                  <input
+                    type="file"
+                    ref={certificateInputRef}
+                    accept=".pdf, image/jpeg, image/png"
+                    onChange={handleCertificateUpload}
+                    className="hidden"
+                    id="certificateUpload"
+                  />
                 <label
                   htmlFor="csvUpload"
                   className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md cursor-pointer"
@@ -225,7 +282,7 @@ const { data: filteredAthletes = [], isLoading } = useQuery<AthleteWithProof[]>(
                 {new Date(athlete.birthdate).toLocaleDateString()}
               </td>
               <td className="px-6 py-4 whitespace-nowrap">{athlete.gender}</td>
-              <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+              <td className="px-6 py-4 whitespace-nowrap cursor-pointer" onClick={() => certificateInputRef.current?.click()}>
                 {athlete.proof ? (
                   <svg className="w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
