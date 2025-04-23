@@ -11,8 +11,7 @@ import {
   Legend,
 } from 'chart.js';
 import { useEffect, useRef } from 'react';
-
-type Discipline = 'SWIMMING' | 'RUNNING' | 'CYCLING';
+import { Performance as PrismaPerformance, Discipline } from '@prisma/client';
 
 ChartJS.register(
   CategoryScale,
@@ -30,16 +29,8 @@ const MEDAL_COLORS = {
   BRONZE: '#CD7F32',
 };
 
-interface Performance {
-  id: number;
-  value: number;
-  date: string;
-  discipline: string;
-  medal: 'GOLD' | 'SILVER' | 'BRONZE' | null;
-}
-
 interface PerformanceChartProps {
-  performances: Performance[];
+  performances: Array<PrismaPerformance & { athleteName?: string }>;
   discipline: Discipline;
   className?: string;
 }
@@ -61,7 +52,7 @@ export default function PerformanceChart({ performances, discipline, className }
     labels: filteredData.map(p => new Date(p.date).toLocaleDateString()),
     datasets: [{
       label: 'Performance Value',
-      data: filteredData.map(p => p.value),
+      data: filteredData.map(p => p.value.toNumber()),
       borderColor: MEDAL_COLORS.GOLD,
       backgroundColor: MEDAL_COLORS.GOLD + '33',
       tension: 0.4,

@@ -28,6 +28,47 @@ interface ErrorReportRow extends CSVRow {
   error: string
 }
 
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const athleteId = searchParams.get('athleteId')
+    const discipline = searchParams.get('discipline')
+    const year = searchParams.get('year')
+
+    const prisma = new PrismaClient()
+    
+    const performances = await prisma.performance.findMany({
+      where: {
+        athleteId: athleteId ? parseInt(athleteId) : undefined,
+        discipline: discipline as Discipline || undefined,
+        date: year ? {
+          gte: new Date(`${year}-01-01`),
+          lte: new Date(`${year}-12-31`)
+        } : undefined
+      },
+      include: {
+        athlete: true
+      },
+      orderBy: {
+        date: 'desc'
+      }
+    })
+
+    return NextResponse.json(performances.map(perf => ({
+      ...perf,
+      value: perf.value.toNumber(),
+      athleteName: `${perf.athlete.firstName} ${perf.athlete.lastName}`
+    })), { status: 200 })
+    
+  } catch (error) {
+    console.error('Performance fetch error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
