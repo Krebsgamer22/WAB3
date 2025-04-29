@@ -16,7 +16,6 @@
 !.env.example
 
 # Prisma artifacts
-/prisma/migrations
 /prisma/*.db
 /prisma/*.db-journal
 

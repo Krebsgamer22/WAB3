@@ -11,13 +11,11 @@ model Athlete {
   id           Int             @id @default(autoincrement())
   firstName    String
   lastName     String
-  email        String
+  email        String    @unique
   birthdate    DateTime
   gender       Gender
   performances Performance[]
   proof        SwimmingProof?
-  
-  @@unique([email, birthdate])
 }
 
 model Performance {
@@ -29,6 +27,8 @@ model Performance {
   date        DateTime
   medal       MedalType?
   criteria    MedalCriteria @relation(fields: [discipline], references: [discipline])
+  
+  @@unique([athleteId, discipline, date], name: "athleteId_discipline_date")
 }
 
 model SwimmingProof {
@@ -36,7 +36,14 @@ model SwimmingProof {
   athlete    Athlete   @relation(fields: [athleteId], references: [id])
   athleteId  Int       @unique
   fileUrl    String
+  fileType   FileType 
   uploadDate DateTime  @default(now())
+}
+
+enum FileType {
+  PDF
+  JPEG
+  PNG
 }
 
 model MedalCriteria {
@@ -66,4 +73,14 @@ enum Discipline {
   KRAFT
   SCHNELLIGKEIT
   TECHNIK
+}
+
+model Rule {
+  id             Int         @id @default(autoincrement())
+  effectiveYear  Int         @unique
+  description    String
+  discipline     Discipline
+  criteria       Json
+  
+  @@index([effectiveYear, discipline])
 }
